@@ -376,12 +376,16 @@ namespace CRTMONITOR
 			buf = new byte[64];
 			CMDOUT64(CMD_GET_SYS_INF, null, buf);
 		}
-		static public void GET_MES_DAT(out byte[] md1, out byte[] md2)
+		static public void GET_MES_DAT(int code, int kind, out byte[] md)
 		{
-			md1 = new byte[64];
-			md2 = new byte[64];
-			CMDOUT64(CMD_GET_MES_DAT, 0, 0, 0, 0, null, md1);
-			CMDOUT64(CMD_GET_MES_DAT, 1, 0, 0, 0, null, md2);
+			//pi[0] ... 0:現在の(WIDX-1)のデータを取り込み, RIDXをセット
+			//			1:現在のRIDXから取り込み, RIDXを進めない
+			//			2:現在のRIDXから取り込み, RIDXを進める
+			//			
+			//pi[1] ... 0:md1を取り込む
+			//			1:md2を取り込む
+			md = new byte[64];
+			CMDOUT64(CMD_GET_MES_DAT, code, kind, 0, 0, null, md);
 		}
 		static public void SET_EXE_CMD(int idx)
 		{

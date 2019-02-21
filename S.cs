@@ -539,18 +539,32 @@ namespace CRTMONITOR
 		//    dat.TES = meas_time;
 		//    dat.IDX = meas_sqno;
 		//}
-		static public void get_mes_dat(out MES_DAT dat)
+		static public bool get_mes_dat(uint MEAS_SQNO_BAK, out MES_DAT dat)
 		{
 			byte[] md1, md2;
 			List<byte> l1, l2;
-			D.GET_MES_DAT(out md1, out md2);
-
-			l1 = new List<byte>(md1);
-			l2 = new List<byte>(md2);
 			uint meas_sqno, meas_time, conv_time/*, ret, done*/;
+
+			if (MEAS_SQNO_BAK == 0xffffffff) {
+				D.GET_MES_DAT(0/*ridx<-widx*/, 0, out md1);
+			}
+			else {
+				D.GET_MES_DAT(1/*ridx      */, 0, out md1);
+			}
+			//---
 			meas_sqno = (UInt32)D.MAKELONG(md1[3],md1[2],md1[1],md1[0]);
 			meas_time = (UInt32)D.MAKEWORD(md1[5],md1[4]);
 			conv_time = (UInt32)D.MAKEWORD(md1[7],md1[6]);
+			//---
+			if (MEAS_SQNO_BAK != 0xffffffff && (meas_sqno == MEAS_SQNO_BAK || meas_sqno == 0xffffffff)) {
+				dat = null;
+				return(false);//次のデータが準備できていない
+			}
+			if (true) {
+				D.GET_MES_DAT(2/*ridx++    */, 1, out md2);
+			}
+			l1 = new List<byte>(md1);
+			l2 = new List<byte>(md2);
 			dat = new MES_DAT();
 			//---
 			dat.L_L = BitConverter.ToSingle(md1,  8);
@@ -592,301 +606,9 @@ namespace CRTMONITOR
 			//}
 			dat.TES = meas_time;
 			dat.IDX = meas_sqno;
-		}
-#if false
-		static public void GET_TM(byte[]buf, int c_idx, ref double T)
-		{
-			uint t1, t2, ts;
-			t1 = (UInt32)D.MAKELONG(buf[3],buf[2],buf[1],buf[0]);
-			t2 = (UInt32)D.MAKELONG(buf[7],buf[6],buf[5],buf[4]);
-			ts = (t2-t1);
-			T = ts/20.0;
-		}
-
-		static public void GET_38(byte[]buf, int c_idx, ref double L, ref double P)
-		{
-			ushort	rawps;
-			ushort[] rawals = {0,0};
-			byte[] als_gain_table = {1, 2, 64, 128};
-			ushort[] als_meas_time_table = {0,0,0,0,0,100,100,100,100,100,400,400,50,0,0,0};
-			int id;
-			rawps     = (ushort)(((ushort)buf[1] << 8) | buf[0]);
-			rawals[0] = (ushort)(((ushort)buf[3] << 8) | buf[2]);
-			rawals[1] = (ushort)(((ushort)buf[5] << 8) | buf[4]);
 			//---
-			switch (c_idx) {
-				case 13:id = /*左*/0; break;
-				case 15:id = /*右*/1; break;
-				default:id = /*奥*/2; break;
-			}
-			int index, gain0, gain1,mestm;
-			//---
-			index = G.SP.D38_424_ALG1[id];
-			gain0 =  als_gain_table[index];
-			//---
-			index = G.SP.D38_422_ALG2[id];
-			gain1 =  als_gain_table[index];
-			//---
-			index = G.SP.D38_410_MSTM[id];
-			mestm = als_meas_time_table[index];
-			//---
-			P = rawps;
-			L = S.D38_CONVERT_LX(rawals, gain0, gain1, mestm);
-			L = L * G.SP.SEN_COF_GRD[c_idx + 0] + G.SP.SEN_COF_OFS[c_idx+0];
-			P = P * G.SP.SEN_COF_GRD[c_idx + 1] + G.SP.SEN_COF_OFS[c_idx+1];
+			return(true);
 		}
-		static public void GET_29(byte[]buf, int c_idx, ref double CR, ref double CG, ref double CB, ref double CC)
-		{
-			CC = D.MAKEWORD(buf[1], buf[0]);
-			CR = D.MAKEWORD(buf[3], buf[2]);
-			CG = D.MAKEWORD(buf[5], buf[4]);
-			CB = D.MAKEWORD(buf[7], buf[6]);
-			//---
-			CR = CR * G.SP.SEN_COF_GRD[c_idx+0] + G.SP.SEN_COF_OFS[c_idx+0];
-			CG = CG * G.SP.SEN_COF_GRD[c_idx+1] + G.SP.SEN_COF_OFS[c_idx+1];
-			CB = CB * G.SP.SEN_COF_GRD[c_idx+2] + G.SP.SEN_COF_OFS[c_idx+2];
-			CC = CC * G.SP.SEN_COF_GRD[c_idx+3] + G.SP.SEN_COF_OFS[c_idx+3];
-		}
-		static public void GET_76(byte[]buf, int c_idx, ref double P, ref double T, ref double H)
-		{
-			int	temp_r, pres_r, humi_r;
-			pres_r = (buf[0] << 12) | (buf[1] << 4) | (buf[2] >> 4);
-			temp_r = (buf[3] << 12) | (buf[4] << 4) | (buf[5] >> 4);
-			humi_r = (buf[6] << 8)  |  buf[7];
-			//---
-			float t_fine;
-			T = S.D76_COMPENSATE_T(temp_r, out t_fine);
-			P = S.D76_COMPENSATE_P(pres_r, t_fine);
-			H = S.D76_COMPENSATE_H(humi_r, t_fine);
-			//---
-			T = T * G.SP.SEN_COF_GRD[c_idx+0] + G.SP.SEN_COF_OFS[c_idx+0];
-			H = H * G.SP.SEN_COF_GRD[c_idx+1] + G.SP.SEN_COF_OFS[c_idx+1];
-			P = P * G.SP.SEN_COF_GRD[c_idx+2] + G.SP.SEN_COF_OFS[c_idx+2];
-		}
-		static public void GET_68(byte[]buf, int c_idx, ref double AX, ref double AY, ref double AZ, ref double GX, ref double GY, ref double GZ)
-		{
-			double ares, gres;
-			ares = S.D68_GET_ARES(G.SP.D68_1C3_ASCL);
-			gres = S.D68_GET_GRES(G.SP.D68_1B3_GSCL);
-
-			AX = (Int16)D.MAKEWORD(buf[ 0], buf[ 1]);
-			AY = (Int16)D.MAKEWORD(buf[ 2], buf[ 3]);
-			AZ = (Int16)D.MAKEWORD(buf[ 4], buf[ 5]);
-			//---
-			GX = (Int16)D.MAKEWORD(buf[ 8], buf[ 9]);
-			GY = (Int16)D.MAKEWORD(buf[10], buf[11]);
-			GZ = (Int16)D.MAKEWORD(buf[12], buf[13]);
-			//---
-			AX *= ares;
-			AY *= ares;
-			AZ *= ares;
-			GX *= gres;
-			GY *= gres;
-			GZ *= gres;
-			//---
-			AX = AX * G.SP.SEN_COF_GRD[c_idx+0] + G.SP.SEN_COF_OFS[c_idx+0];
-			AY = AY * G.SP.SEN_COF_GRD[c_idx+1] + G.SP.SEN_COF_OFS[c_idx+1];
-			AZ = AZ * G.SP.SEN_COF_GRD[c_idx+2] + G.SP.SEN_COF_OFS[c_idx+2];
-			GX = GX * G.SP.SEN_COF_GRD[c_idx+3] + G.SP.SEN_COF_OFS[c_idx+3];
-			GY = GY * G.SP.SEN_COF_GRD[c_idx+4] + G.SP.SEN_COF_OFS[c_idx+4];
-			GZ = GZ * G.SP.SEN_COF_GRD[c_idx+5] + G.SP.SEN_COF_OFS[c_idx+5];
-		}
-		static public void GET_FF(byte[]buf, int c_idx, ref double[] CNTS, ref double[] VOLS, ref double[] VALS)
-		{
-//			const
-//			int MAX_OF_CH = 3;
-			//double[] cnts = new double[MAX_OF_CH];
-			//double[] vols = new double[MAX_OF_CH];
-			//double[] vals = new double[MAX_OF_CH];
-			for (int i = 0; i < 3; i++) {
-				int j = i*2;
-				CNTS[i] = D.MAKEWORD(buf[j+1], buf[j+0]);
-			}
-			for (int i = 0; i < 3; i++) {
-				CNTS[i] /= 10.0;
-				VOLS[i] = CNTS[i] / (double)CNTS[0] * 2.5;
-			}
-			for (int i = 1; i < 3; i++) {
-				VOLS[i] = VOLS[i] * G.SP.ADC_COF_GRD[i] + G.SP.ADC_COF_OFS[i];
-			}
-			for (int i = 1; i < 3; i++) {
-				VALS[0] = VOLS[0];
-				VALS[1] = VOLS[1] * G.SP.SEN_COF_GRD[20] + G.SP.SEN_COF_OFS[20];
-				VALS[2] = VOLS[2] * G.SP.SEN_COF_GRD[21] + G.SP.SEN_COF_OFS[21];
-			}
-			//---
-			//Z = cnts[0];
-			//P = vals[1];
-			//B = vals[2];
-		}
-		static public float D38_CONVERT_LX(ushort[] data, int data0_gain, int data1_gain, int meas_time)
-		{
-			const int RPR0521RS_ERROR =(-1);
-			float lx;
-			float d0, d1, d1_d0;
-
-			if (data0_gain == 0) {
-				return (RPR0521RS_ERROR);
-			}
-			if (data1_gain == 0) {
-				return (RPR0521RS_ERROR);
-			}
-
-			if (meas_time == 0) {
-				return (RPR0521RS_ERROR);
-			}
-			else if (meas_time == 50) {
-				if ((data[0] & 0x8000) == 0x8000) {
-					data[0] = 0x7FFF;
-				}
-				if ((data[1] & 0x8000) == 0x8000) {
-					data[1] = 0x7FFF;
-				}
-			}
-
-			d0 = (float)data[0] * (100 / meas_time) / data0_gain;
-			d1 = (float)data[1] * (100 / meas_time) / data1_gain;
-
-			if (d0 == 0) {
-				lx = 0;
-				return (lx);
-			}
-
-			d1_d0 = d1 / d0;
-
-			if (d1_d0 < 0.595f) {
-				lx = (1.682f * d0 - 1.877f * d1);
-			}
-			else if (d1_d0 < 1.015f) {
-				lx = (0.644f * d0 - 0.132f * d1);
-			}
-			else if (d1_d0 < 1.352f) {
-				lx = (0.756f * d0 - 0.243f * d1);
-			}
-			else if (d1_d0 < 3.053f) {
-				lx = (0.766f * d0 - 0.250f * d1);
-			}
-			else {
-				lx = 0;
-			}
-			return (lx);
-		}
-		static public float D68_GET_GRES(int/*GSCALE*/ g_s)
-		{
-			float res = float.NaN;
-			switch ((D68_MPU9250.GSCALE)g_s)
-			{
-			// Possible gyro scales (and their register bit settings) are:
-			// 250 DPS (00), 500 DPS (01), 1000 DPS (10), and 2000 DPS (11).
-			// Here's a bit of an algorith to calculate DPS/(ADC tick) based on that
-			// 2-bit value:
-			case D68_MPU9250.GSCALE.GFS_250DPS:
-				res = 250.0f / 32768.0f;
-			break;
-			case D68_MPU9250.GSCALE.GFS_500DPS:
-				res = 500.0f / 32768.0f;
-			break;
-			case D68_MPU9250.GSCALE.GFS_1000DPS:
-				res = 1000.0f / 32768.0f;
-			break;
-			case D68_MPU9250.GSCALE.GFS_2000DPS:
-				res = 2000.0f / 32768.0f;
-			break;
-			}
-			return(res);
-		}
-		static public float D68_GET_ARES(int/*ASCALE*/ a_s)
-		{
-			float res = float.NaN;
-			switch ((D68_MPU9250.ASCALE)a_s)
-			{
-			// Possible accelerometer scales (and their register bit settings) are:
-			// 2 Gs (00), 4 Gs (01), 8 Gs (10), and 16 Gs  (11).
-			// Here's a bit of an algorith to calculate DPS/(ADC tick) based on that
-			// 2-bit value:
-			case D68_MPU9250.ASCALE.AFS_2G:
-				res = 2.0f / 32768.0f;
-				break;
-			case D68_MPU9250.ASCALE.AFS_4G:
-				res = 4.0f / 32768.0f;
-				break;
-			case D68_MPU9250.ASCALE.AFS_8G:
-				res = 8.0f / 32768.0f;
-				break;
-			case D68_MPU9250.ASCALE.AFS_16G:
-				res = 16.0f / 32768.0f;
-				break;
-			}
-			return(res);
-		}
-		static public float D76_COMPENSATE_T(int adc_T, out float t_fine)
-		{
-			float v1, v2, temperature;
-
-			v1 = (adc_T / 16384.0f - G.SS.D76_CAL_DIGT[0] / 1024.0f) * G.SS.D76_CAL_DIGT[1];
-			v2 = (adc_T / 131072.0f - G.SS.D76_CAL_DIGT[0] / 8192.0f) * (adc_T / 131072.0f - G.SS.D76_CAL_DIGT[0] / 8192.0f) * G.SS.D76_CAL_DIGT[2];
-			t_fine = v1 + v2;
-			temperature = t_fine / 5120.0f;
-	
-			//print "temp : %-6.2f ℃" % (temperature) 
-
-			return(temperature);
-		}
-		static public float D76_COMPENSATE_H(int adc_H, float t_fine)
-		{
-			float var_h;
-
-			var_h = t_fine - 76800.0f;
-			if (var_h != 0) {
-				var_h = (adc_H - (G.SS.D76_CAL_DIGH[3] * 64.0f + G.SS.D76_CAL_DIGH[4]/16384.0f * var_h))
-					  * (G.SS.D76_CAL_DIGH[1] / 65536.0f
-					  * (1.0f + G.SS.D76_CAL_DIGH[5] / 67108864.0f * var_h * (1.0f + G.SS.D76_CAL_DIGH[2] / 67108864.0f * var_h)));
-			}
-			else {
-				return 0;
-			}
-			var_h = var_h * (1.0f - G.SS.D76_CAL_DIGH[0] * var_h / 524288.0f);
-			if (var_h > 100.0f) {
-				var_h = 100.0f;
-			}
-			else if (var_h < 0.0f) {
-				var_h = 0.0f;
-			}
-			//print "hum : %6.2f ％" % (var_h)
-
-			return(var_h);
-		}
-		static public float D76_COMPENSATE_P(int adc_P, float t_fine)
-		{
-			float pressure, v1, v2;
-
-			pressure = 0.0f;
-	
-			v1 = (t_fine / 2.0f) - 64000.0f;
-			v2 = (((v1 / 4.0f) * (v1 / 4.0f)) / 2048) * G.SS.D76_CAL_DIGP[5];
-			v2 = v2 + ((v1 * G.SS.D76_CAL_DIGP[4]) * 2.0f);
-			v2 = (v2 / 4.0f) + (G.SS.D76_CAL_DIGP[3] * 65536.0f);
-			v1 = (((G.SS.D76_CAL_DIGP[2] * (((v1 / 4.0f) * (v1 / 4.0f)) / 8192)) / 8)  + ((G.SS.D76_CAL_DIGP[1] * v1) / 2.0f)) / 262144;
-			v1 = ((32768f + v1) * G.SS.D76_CAL_DIGP[0]) / 32768f;
-	
-			if (v1 == 0) {
-				return 0;
-			}
-			pressure = ((1048576 - adc_P) - (v2 / 4096)) * 3125;
-			if (pressure < 0x80000000) {
-				pressure = (pressure * 2.0f) / v1;
-			}
-			else {
-				pressure = (pressure / v1) * 2;
-			}
-			v1 = (G.SS.D76_CAL_DIGP[8] * (((pressure / 8.0f) * (pressure / 8.0f)) / 8192.0f)) / 4096;
-			v2 = ((pressure / 4.0f) * G.SS.D76_CAL_DIGP[7]) / 8192.0f;
-			pressure = pressure + ((v1 + v2 + G.SS.D76_CAL_DIGP[6]) / 16.0f);
-
-//			print "pressure : %7.2f hPa" % (pressure/100)
-			return(pressure/100);
-		}
-#endif
 	}
 }
 #if false

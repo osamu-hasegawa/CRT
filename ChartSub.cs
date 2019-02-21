@@ -71,7 +71,8 @@ namespace CRTMONITOR
 				rbuf = new RingBuff(3000);
 		PictureBox pbox;
 		public
-		double interval = 0.1;
+//		double interval = 0.1;
+		double interval = C.INTERVAL/1000.0;
 
 		void Draw4Edge(Graphics pDC, RECT rt, Pen pen)
 		{

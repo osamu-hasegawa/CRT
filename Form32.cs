@@ -24,6 +24,9 @@ namespace CRTMONITOR
 			//
 			//
 			DDX(true);
+			//
+			radioButton5_Click(null, null);
+			comboBox13_SelectedIndexChanged(null, null);
 		}
 
 		private bool DDX(bool bUpdate)
@@ -85,11 +88,14 @@ namespace CRTMONITOR
 				DDV.DDX(bUpdate, this.textBox16     , ref m_sp.MES_LCK_TOT);
 	
 				//---
-				DDV.DDX(bUpdate, new RadioButton[] {this.radioButton5, this.radioButton6, this.radioButton7}
+				DDV.DDX(bUpdate, new RadioButton[] {this.radioButton5, this.radioButton6, this.radioButton7, this.radioButton8}
 													, ref m_sp.MES_MES_CND   );
 				DDV.DDX(bUpdate, this.textBox17     , ref m_sp.MES_MES_VRD);				//---
 				DDV.DDX(bUpdate, this.textBox18     , ref m_sp.MES_MES_VRC);				//---
 				DDV.DDX(bUpdate, this.textBox19     , ref m_sp.MES_MES_VRB);				//---
+				DDV.DDX(bUpdate, this.textBox30     , ref m_sp.MES_MES_VRS);				//---
+				DDV.DDX(bUpdate, this.textBox31     , ref m_sp.MES_MES_VRE);				//---
+
 				DDV.DDX(bUpdate, this.textBox20     , ref m_sp.MES_MES_WAI);				//---
 				DDV.DDX(bUpdate, this.textBox21     , ref m_sp.MES_MES_TOT);				//---
 				//---
@@ -102,6 +108,12 @@ namespace CRTMONITOR
 				DDV.DDX(bUpdate, this.textBox24     , ref m_sp.ROM_DAT_STA);				//---
 				DDV.DDX(bUpdate, this.textBox25     , ref m_sp.ROM_DAT_END);				//---
 				}
+#if true//2019.02.12(release button time)
+				DDV.DDX(bUpdate, this.textBox26     , ref m_sp.MES_LCK_REL);				//---
+				DDV.DDX(bUpdate, this.textBox27     , ref m_sp.BZR_PAT_REL, 16);
+				DDV.DDX(bUpdate, this.textBox28     , ref m_sp.BZR_PAT_STA, 16);
+				DDV.DDX(bUpdate, this.textBox29     , ref m_sp.BZR_PAT_END, 16);
+#endif
 				//---
                 rc = true;
             }
@@ -120,5 +132,23 @@ namespace CRTMONITOR
 			}
 		}
 
+		private void comboBox13_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			this.textBox7.Enabled = (comboBox13.SelectedIndex == 0);
+			this.textBox8.Enabled = (comboBox14.SelectedIndex == 0);
+			this.textBox9.Enabled = (comboBox15.SelectedIndex == 0);
+			this.textBox10.Enabled = (comboBox16.SelectedIndex == 0);
+			this.textBox11.Enabled = (comboBox17.SelectedIndex == 0);
+			this.textBox12.Enabled = (comboBox18.SelectedIndex == 0);
+		}
+
+		private void radioButton5_Click(object sender, EventArgs e)
+		{
+			this.textBox17.Enabled = this.radioButton5.Checked;
+			this.textBox18.Enabled = this.radioButton6.Checked;
+			this.textBox19.Enabled = this.radioButton7.Checked;
+			this.textBox30.Enabled = this.radioButton8.Checked;
+			this.textBox31.Enabled = this.radioButton8.Checked;
+		}
 	}
 }

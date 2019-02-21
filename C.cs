@@ -9,6 +9,7 @@ namespace CRTMONITOR
 	{
 		public const int DUMMY = 0;
 		public const int GAP_OF_IMG_EDGE = 10;//座標が画像の周端にあるかどうかの範囲
+		public const int INTERVAL = 20;//ms
 //        public const int PIXEL_MAX = 512;
 //        public const int MAXCHANNEL = 1;
 //#if true

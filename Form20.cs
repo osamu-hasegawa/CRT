@@ -23,6 +23,8 @@ namespace CRTMONITOR
 			//
 			//
 			DDX(true);
+			//
+			radioButton5_Click(null, null);
 		}
 
 		private void Form20_FormClosing(object sender, FormClosingEventArgs e)
@@ -36,7 +38,7 @@ namespace CRTMONITOR
 			if (true) {
 				//if (this.comboBox3.Text == "-") {
 				//    G.mlog("有効な測定モードを選択してください.");
-				//    this.comboBox3.Focus();
+				//    this.comboBox3.Focus()
 				//    e.Cancel = true;
 				//    return;
 				//}
@@ -48,9 +50,8 @@ namespace CRTMONITOR
             bool rc;
 			try {
 				//---
-				DDV.DDX(bUpdate, new RadioButton[] {this.radioButton5, this.radioButton6, this.radioButton7}
+				DDV.DDX(bUpdate, new RadioButton[] {this.radioButton5, this.radioButton6, this.radioButton7, this.radioButton8}
 													, ref m_sp.MES_MES_CND   );
-				DDV.DDX(bUpdate, this.numericUpDown1, ref m_sp.MES_MES_VRD);				//---
 				DDV.DDX(bUpdate, this.numericUpDown2, ref m_sp.MES_MES_VRC);				//---
 				DDV.DDX(bUpdate, this.numericUpDown3, ref m_sp.MES_MES_VRB);				//---
 
@@ -61,6 +62,12 @@ namespace CRTMONITOR
                 rc = false;
             }
             return (rc);
+		}
+
+		private void radioButton5_Click(object sender, EventArgs e)
+		{
+			this.numericUpDown2.Enabled = this.radioButton6.Checked;
+			this.numericUpDown3.Enabled = this.radioButton7.Checked;
 		}
 	}
 }

@@ -243,6 +243,16 @@ namespace CRTMONITOR
 			//---
 			public int		ROM_DAT_STA;
 			public int		ROM_DAT_END;
+#if true//2019.02.12(release button time)
+			public int		MES_LCK_REL;
+			public byte[]	BZR_PAT_REL = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+			public byte[]	BZR_PAT_STA = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+			public byte[]	BZR_PAT_END = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#endif
+#if true//2019.02.21
+			public double	MES_MES_VRS;
+			public double	MES_MES_VRE;
+#endif
 #if false
 			//---
 			public int[]	MES_CHK ={0,0,0,0,0,0,0,0,0,0};
@@ -275,6 +285,11 @@ namespace CRTMONITOR
 				if (this.LCD_LCK_SBT  != null) {cln.LCD_LCK_SBT  = (byte  [])this.LCD_LCK_SBT.Clone();}
 				if (this.LCD_MES_STP  != null) {cln.LCD_MES_STP  = (byte  [])this.LCD_MES_STP.Clone();}
 				if (this.LCD_MES_SBT  != null) {cln.LCD_MES_SBT  = (byte  [])this.LCD_MES_SBT.Clone();}
+#if true//2019.02.12(release button time)
+				if (this.BZR_PAT_REL  != null) {cln.BZR_PAT_REL  = (byte  [])this.BZR_PAT_REL.Clone();}
+				if (this.BZR_PAT_STA  != null) {cln.BZR_PAT_STA  = (byte  [])this.BZR_PAT_STA.Clone();}
+				if (this.BZR_PAT_END  != null) {cln.BZR_PAT_END  = (byte  [])this.BZR_PAT_END.Clone();}
+#endif
 #if false
 				//---
 				if (this.MES_CHK != null) {
@@ -605,6 +620,7 @@ namespace CRTMONITOR
 		}
 		static public void eep_get_all()
 		{
+			D.SET_MES_PAR(0, /*STOP*/0);
 			//if ((G.SS.DEVID & 0xffff) == 0xffff) {eep_put_all();}
 			eep_get(  0, 1, out G.SP.RESET_FLAG);
 			eep_get(  1, 6, out G.SP.DEV_ID    );
@@ -741,6 +757,16 @@ namespace CRTMONITOR
 			eep_get(128, 2, out G.SP.MES_MES_WAI    );
 			eep_get(129, 2, out G.SP.ROM_DAT_STA    );
 			eep_get(130, 2, out G.SP.ROM_DAT_END    );
+#if true//2019.02.12(release button time)
+			eep_get(131, 2, out G.SP.MES_LCK_REL    );
+			eep_get(132,16, out G.SP.BZR_PAT_REL    );
+			eep_get(133,16, out G.SP.BZR_PAT_STA    );
+			eep_get(134,16, out G.SP.BZR_PAT_END    );
+#endif
+#if true//2019.02.21
+			eep_get(135, 4, out G.SP.MES_MES_VRS    );
+			eep_get(136, 4, out G.SP.MES_MES_VRE    );
+#endif
 			//---
 /*			eep_get(122, 2, out G.SP.MES_CHK[8]     );
 			eep_get(123, 2, out G.SP.MES_CHK[8]     );
@@ -900,6 +926,17 @@ namespace CRTMONITOR
 			if (G.SP.MES_MES_WAI     != G.SB.MES_MES_WAI    ) {l_flg.Add(128);}
 			if (G.SP.ROM_DAT_STA     != G.SB.ROM_DAT_STA    ) {l_flg.Add(129);}
 			if (G.SP.ROM_DAT_END     != G.SB.ROM_DAT_END    ) {l_flg.Add(130);}
+#if true//2019.02.12(release button time)
+			if (G.SP.MES_LCK_REL     != G.SB.MES_LCK_REL    ) {l_flg.Add(131);}
+			if (!G.SP.BZR_PAT_REL.SequenceEqual(G.SB.BZR_PAT_REL)) {l_flg.Add(132);}
+			if (!G.SP.BZR_PAT_STA.SequenceEqual(G.SB.BZR_PAT_STA)) {l_flg.Add(133);}
+			if (!G.SP.BZR_PAT_END.SequenceEqual(G.SB.BZR_PAT_END)) {l_flg.Add(134);}
+#endif
+#if true//2019.02.21
+			if (G.SP.MES_MES_VRS     != G.SB.MES_MES_VRS    ) {l_flg.Add(135);}
+			if (G.SP.MES_MES_VRE     != G.SB.MES_MES_VRE    ) {l_flg.Add(136);}
+#endif
+
 #if false
 			if (G.SP.MES_CHK[0]      != G.SB.MES_CHK[0]     ) {l_flg.Add(84);}
 			if (G.SP.MES_CHK[1]      != G.SB.MES_CHK[1]     ) {l_flg.Add(85);}
@@ -1067,6 +1104,16 @@ namespace CRTMONITOR
 				case 129: eep_put(idx, 2, G.SP.ROM_DAT_STA    ); break;
 				case 130: eep_put(idx, 2, G.SP.ROM_DAT_END    ); break;
 				//---
+#if true//2019.02.12(release button time)
+				case 131: eep_put(idx, 2, G.SP.MES_LCK_REL    ); break;
+				case 132: eep_put(idx,16, G.SP.BZR_PAT_REL    ); break;
+				case 133: eep_put(idx,16, G.SP.BZR_PAT_STA    ); break;
+				case 134: eep_put(idx,16, G.SP.BZR_PAT_END    ); break;
+#endif
+#if true//2019.02.21
+				case 135: eep_put(idx, 4, G.SP.MES_MES_VRS    ); break;
+				case 136: eep_put(idx, 4, G.SP.MES_MES_VRE    ); break;
+#endif
 #if false
 				case  84:eep_put(84, 2, G.SP.MES_CHK[0]      ); break;
 				case  85:eep_put(85, 2, G.SP.MES_CHK[1]      ); break;

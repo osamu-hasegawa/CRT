@@ -45,8 +45,7 @@ namespace CRTMONITOR
 	};
 	public partial class Form02 : Form
 	{
-		const
-		int C_INTERVAL = 100;//ms
+
 		int C_ROWCNT;
 		int C_COLCNT;
 		int C_CELCNT;
@@ -66,7 +65,12 @@ namespace CRTMONITOR
 				panels = null;
 		StreamWriter m_wr;
 		TimeSpan m_ts;
-
+		int		dly_cnt;
+		int		mis_cnt;
+		int		ttl_cnt;
+		int		skp_cnt;
+		int		tic_cnt;
+		int		tic1, tic2;
 		public Form02()
 		{
 			InitializeComponent();
@@ -422,7 +426,11 @@ namespace CRTMONITOR
 			if (G.SS.ETC_UIF_LEVL == 1/*開発者用(一度)*/) {
 				G.SS.ETC_UIF_LEVL = 0;//->ユーザ用へ
 			}
-		}
+            if (G.UIF_LEVL == 0)
+            {
+                this.tabControl1.TabPages.Remove(this.tabPage2);//パネル
+            }
+        }
 		private void Form02_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			//if (this.SENS != null) {
@@ -478,7 +486,7 @@ namespace CRTMONITOR
 		}
 		private void numericUpDown1_ValueChanged(object sender, EventArgs e)
 		{
-			this.mes_itv = C_INTERVAL;//ms
+			this.mes_itv = C.INTERVAL;//ms
 			//this.timer1.Interval = (int)this.numericUpDown1.Value;
 			this.mes_pts_in_wid = this.mes_wid *1000 / this.mes_itv;
 		}
@@ -509,20 +517,66 @@ namespace CRTMONITOR
 		}
 		private void timer1_Tick(object sender, EventArgs e)
 		{
-#if true
+			S.MES_DAT dat;
+			uint	MEAS_SQNO;
+			bool	ret;
+			tic_cnt++;
+//			this.timer1.Enabled = false;
+
+			if (true) {
+				if ((ret = S.get_mes_dat(MEAS_SQNO_BAK, out dat)) == false) {
+					this.skp_cnt++;
+					this.textBox4.Text = this.skp_cnt.ToString();
+					goto skip;
+				}
+				MEAS_SQNO = dat.IDX;
+			}
+#if false
 			if (true) {
 				byte[] buf;
-				uint	MEAS_SQNO;
 				D.GET_SYS_INF(out buf);
 				MEAS_SQNO = (uint)D.MAKELONG(buf[15],buf[14],buf[13],buf[12]);
-				if (MEAS_SQNO == MEAS_SQNO_BAK) {
-					return;
-				}
-				MEAS_SQNO_BAK = MEAS_SQNO;
 			}
 
 #endif
-			this.timer1.Enabled = false;
+			if (true) {
+				if (MEAS_SQNO == MEAS_SQNO_BAK) {
+					this.skp_cnt++;
+					goto skip;
+				}
+				if (MEAS_SQNO == (MEAS_SQNO_BAK+1) || MEAS_SQNO_BAK == 0xffffffff) {
+					MEAS_SQNO = MEAS_SQNO;
+					//ok
+				}
+				else if (MEAS_SQNO == (MEAS_SQNO_BAK+2)) {
+					this.mis_cnt++;
+				}
+				else if (MEAS_SQNO == (MEAS_SQNO_BAK+3)) {
+					this.dly_cnt++;
+				}
+				else {
+					int tmp = (int)MEAS_SQNO-(int)MEAS_SQNO_BAK;
+					this.dly_cnt++;
+				}
+				this.ttl_cnt++;
+				if ((this.ttl_cnt % 10) == 0) {
+					this.textBox1.Text = this.ttl_cnt.ToString();
+					this.textBox2.Text = this.mis_cnt.ToString();
+					this.textBox3.Text = this.dly_cnt.ToString();
+					this.textBox4.Text = this.skp_cnt.ToString();
+				}
+				MEAS_SQNO_BAK = MEAS_SQNO;
+			}
+			if (true) {
+				this.tic2 = System.Environment.TickCount;
+				double fps, ela;
+				if ((ela = (this.tic2 - this.tic1)) > 1000) {
+					fps = tic_cnt / (ela / 1000.0);
+					this.label5.Text = string.Format("FPS:{0:F2}", fps);
+					tic_cnt = 0;
+					tic1 = tic2;
+				}
+			}
 			if (true) {
 #if true
 				if (mes_cnt > 0 && (mes_cnt % this.mes_pts_in_wid) == 0) {
@@ -534,9 +588,8 @@ namespace CRTMONITOR
 #endif
 			}
 			if (true) {
-				S.MES_DAT dat;
 				int q = 0;
-				S.get_mes_dat(out dat);
+				//S.get_mes_dat(out dat);
 				G.MES_VAL[q++] = dat.C_R;
 				G.MES_VAL[q++] = dat.C_G;
 				G.MES_VAL[q++] = dat.C_B;
@@ -559,7 +612,9 @@ namespace CRTMONITOR
 				G.MES_VAL[q++] = dat.D_C[0];
 				G.MES_VAL[q++] = dat.D_F[1];
 				G.MES_VAL[q++] = dat.D_F[2];
-				disp_panel(dat);
+				if ((this.ttl_cnt % 10) == 0) {
+					disp_panel(dat);
+				}
 			}
 
 			for (int i = 0; i < G.DT.Length; i++) {
@@ -584,6 +639,7 @@ namespace CRTMONITOR
 
 			this.mes_nxt += mes_itv;
 			this.mes_cnt++;
+		skip:
 			this.timer1.Enabled = true;
 		}
 		private void f_open(string path)
@@ -743,6 +799,11 @@ namespace CRTMONITOR
 			this.mes_wid = (int)this.numericUpDown2.Value; //sec
 			this.mes_pts_in_wid = this.mes_wid *1000 / this.mes_itv;
 
+			this.dly_cnt = 0;
+			this.mis_cnt = 0;
+			this.ttl_cnt = 0;
+			this.skp_cnt = 0;
+			this.MEAS_SQNO_BAK = 0xffffffff;
 			this.mes_cnt = 0;
 			this.mes_nxt = System.Environment.TickCount;
 			this.timer1.Interval = 1;
@@ -1029,6 +1090,9 @@ namespace CRTMONITOR
 					}
 				}
 				else if (sender == this.button2) {
+					if (this.timer1.Enabled) {
+						button4_Click(null, null);
+					}
 					D.TERM();
 					this.button1.Enabled = true;
 					this.button2.Enabled = false;
@@ -1124,12 +1188,12 @@ namespace CRTMONITOR
 //			new CLMDEF(-1, "NO."           ,  70, ALIGN.CENTER),
 			new CLMDEF( 0, "No."           ,  40, ALIGN.CENTER, null),
 			new CLMDEF( 0, "センサー値"    ,  80, ALIGN.RIGHT , null),
-			new CLMDEF( 0, "測定時間\r[s]" ,  80, ALIGN.RIGHT , "F1"),
+			new CLMDEF( 0, "測定時間\r[s]" ,  80, ALIGN.RIGHT , "F2"),
 			new CLMDEF( 0, "センサー\r種別",  80, ALIGN.CENTER, null),
 			new CLMDEF( 0, "測定方法"      ,  80, ALIGN.CENTER, null),
-			new CLMDEF( 0, "圧力@LOCK\r[N]",  80, ALIGN.RIGHT , "F2"),
-			new CLMDEF( 0, "圧力@測定\r[N]",  80, ALIGN.RIGHT , "F2"),
-			new CLMDEF( 0, "時間@LOCK\r[s]",  80, ALIGN.RIGHT , "F1"),
+			new CLMDEF( 0, "圧力@圧迫\r[N]",  80, ALIGN.RIGHT , "F2"),
+			new CLMDEF( 0, "圧力@解除\r[N]",  80, ALIGN.RIGHT , "F2"),
+			new CLMDEF( 0, "時間@圧迫\r[s]",  80, ALIGN.RIGHT , "F1"),
 			new CLMDEF( 0, "Sa"            ,  80, ALIGN.RIGHT , "F0"),
 			new CLMDEF( 0, "Sb"            ,  80, ALIGN.RIGHT , "F0"),
 			new CLMDEF( 0, "Sz"            ,  80, ALIGN.RIGHT , "F0"),
@@ -1234,7 +1298,7 @@ namespace CRTMONITOR
 			}
 			this.dataGridView1.Rows.Clear();
 			string[] SENS = new string[] {"R", "G", "B", "C"};
-			string[] MODE = new string[] {"減衰時間", "変化率", "戻り時間"};
+			string[] MODE = new string[] {"減衰時間", "変化率", "戻り時間", "CRT値"};
 			try {
 				for (int i = 0; i < dcnt; i++) {
 					byte[]	buf;
@@ -1249,7 +1313,7 @@ namespace CRTMONITOR
 					get_romdat(buf, out dat);
 					ar.Add(dat.MES_MIDX);
 					ar.Add(dat.SEN_F_SN);
-					ar.Add(dat.MES_TIME/10.0);
+					ar.Add(dat.MES_TIME/10.0/5);
 					ar.Add(SENS[dat.USE_SENS]);
 
 					ar.Add(MODE[dat.CND_MODE]);
@@ -1259,7 +1323,12 @@ namespace CRTMONITOR
 					ar.Add(dat.SEN_F_SA);
 					ar.Add(dat.SEN_F_SB);
 					ar.Add(dat.SEN_F_SZ);
+					if (dat.CND_MODE <= 2) {
 					ar.Add(dat.CND_R_VL);
+					}
+					else {
+					ar.Add(double.NaN);
+					}
 					ar.Add(dat.SEN_R_VL);
 					ar.Add(CT2S(dat.CPU_TIME));
 
